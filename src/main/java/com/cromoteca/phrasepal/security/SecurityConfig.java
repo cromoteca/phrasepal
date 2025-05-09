@@ -6,21 +6,21 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
-import org.springframework.security.provisioning.UserDetailsManager;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UserDetails;
 
-import com.vaadin.hilla.route.RouteUtil;
+import com.cromoteca.phrasepal.user.UserRepository;
 
 @EnableWebSecurity
 @Configuration
 public class SecurityConfig extends VaadinWebSecurity {
 
-  private final RouteUtil routeUtil;
-
-  public SecurityConfig(RouteUtil routeUtil) {
-    this.routeUtil = routeUtil;
-  }
+  @Autowired
+  private UserRepository userRepository;
 
   @Override
   protected void configure(HttpSecurity http) throws Exception {
@@ -34,12 +34,14 @@ public class SecurityConfig extends VaadinWebSecurity {
   }
 
   @Bean
-  public UserDetailsManager userDetailsService() {
-    // Configure users and roles in memory
-    return new InMemoryUserDetailsManager(
-      // the {noop} prefix tells Spring that the password is not encoded
-      User.withUsername("user").password("{noop}user").roles("USER").build(),
-      User.withUsername("admin").password("{noop}admin").roles("ADMIN", "USER").build()
-    );
+  public PasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder();
+  }
+
+  @Bean
+  public UserDetailsService userDetailsService() {
+    return username -> userRepository.findByEmail(username)
+        .map(user -> (UserDetails) user)
+        .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
   }
 }
