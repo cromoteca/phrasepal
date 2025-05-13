@@ -8,6 +8,15 @@ spring:
     hibernate:
       ddl-auto: "create-drop"
     defer-datasource-initialization: true
+  ai:
+    ollama:
+      chat:
+        options:
+          model: cogito:8b
+#   huggingface:
+#     chat:
+#       api-key: ${HF_TOKEN}
+#       url: https://api-inference.huggingface.co/models/your-model-id
 
 # H2 Database Configuration
 # datasource:
@@ -18,3 +27,33 @@ spring:
 # h2:
 #   console:
 #     enabled: true
+
+prompts:
+  translateToTargetLanguage: |
+    Translate the user text from {source} to {target}.
+    Don't include any additional information or formatting.
+  getWordsFromPhrase: |
+    Extract all the words from the user phrase.
+    Provide the base form (lemma) of each word in the user phrase.
+    Use a comma to separate the words.
+    Do not include any additional information or formatting.
+    Example : "La pasta è cotta" -> "la,pasta,essere,cotto"
+    Example : "I am running" -> "i,be,run"
+  createPhraseFromWords: |
+    Create a phrase in {lang} using the user words.
+    You are not required to use all the words and you can add any additional words to make the phrase more meaningful.
+    The complexity of the phrase should be determined by the words provided.
+    Words are provided in lowercase and separated by commas. Their order is not important.
+    Do not include any additional information or formatting.
+    Example : "pasta,pizza,persona" -> "Una persona sta mangiando un piatto di pasta"
+    Example : "train,chat,chapeau" -> "Quelqu'un a perdu un chapeau dans le train"
+    Example : "walk,i" -> "I am walking to the store"
+    Example : "giocare,parco,palla,bambino" -> "Un bambino gioca con una palla nel parco"
+  correctTranslation: |
+    Correct the user translation.
+    The original phrase is in {source} and the user translation is in {target}.
+    They are separated by a double colon "::".
+    If there are errors, give the correct translation and describe the mistakes in the user translation.
+    Otherwise, congratulate the user on their correct translation.
+    Example : "The pasta is cooked :: La pasta è cotto" -> "La pasta è cotta. The adjective 'cotto' should be in the feminine singular form 'cotta' to agree with the noun 'pasta'."
+    Example : "The pasta is cooked :: La pasta è cotta" -> "Congratulations! Your translation is correct."

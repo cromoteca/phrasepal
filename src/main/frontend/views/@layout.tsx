@@ -10,6 +10,9 @@ effect(() => {
   document.title = documentTitleSignal.value;
 });
 
+export const sourceLanguage = signal({ label: '🇬🇧 English', value: 'en-US' });
+export const targetLanguage = signal({ label: '🇫🇷 French', value: 'fr-FR' });
+
 // Publish for Vaadin to use
 (window as any).Vaadin.documentTitleSignal = documentTitleSignal;
 
@@ -18,8 +21,13 @@ export default function MainLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const spoken = [{ label: '🇬🇧 English', value: 'english' }];
-  const learning = [{ label: '🇫🇷 French', value: 'french' }];
+  const spoken = [{ label: '🇬🇧 English', value: 'en-US' }];
+  const learning = [{ label: '🇫🇷 French', value: 'fr-FR' }];
+
+  useEffect(() => {
+    sourceLanguage.value = spoken[0];
+    targetLanguage.value = learning[0];
+  }, []);
 
   useEffect(() => {
     if (currentTitle) {

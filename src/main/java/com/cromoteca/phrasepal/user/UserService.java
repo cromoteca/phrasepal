@@ -1,12 +1,15 @@
 package com.cromoteca.phrasepal.user;
 
-import org.springframework.security.core.userdetails.UserDetailsService;
+import java.util.Optional;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import com.vaadin.hilla.BrowserCallable;
+
+import jakarta.annotation.security.PermitAll;
 
 @BrowserCallable
 @AnonymousAllowed
@@ -18,14 +21,15 @@ public class UserService {
         this.userDetailsService = userDetailsService;
     }
 
-    public User getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getName() != null) {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(authentication.getName());
-            if (userDetails != null) {
-                return (User) userDetails;
-            }
-        }
-        return null;
+    public Optional<User> getCurrentUser() {
+        return Optional.ofNullable(SecurityContextHolder.getContext().getAuthentication())
+                .map(Authentication::getName)
+                .map(userDetailsService::loadUserByUsername)
+                .map(User.class::cast);
+    }
+
+    @PermitAll
+    public long getCurrentUserId() {
+        return getCurrentUser().map(User::getId).orElseThrow();
     }
 }
