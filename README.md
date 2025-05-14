@@ -4,4 +4,7 @@ I ended up copying things from the wizard to the spring one. Skeleton adds lots 
 Adding Hilla is not that hard, thanks to the automatic first view creation and some copy-paste from the wizard.
 
 The first component I tried to use is a Select, but the suggested import was wrong (using VS Code).
+Even after, some suggestions are missing:
+![Missing Suggestion](missing-suggestion.png)
 
+Most complexity is about getting the JPA and authentication right. Tedious work to be repeated for each entity: repository, service... nothing weird here, normal Spring stuff. Copilot helps.
