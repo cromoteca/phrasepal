@@ -13,6 +13,7 @@ spring:
       chat:
         options:
           model: cogito:8b
+          # num-ctx: 32768
 #   huggingface:
 #     chat:
 #       api-key: ${HF_TOKEN}

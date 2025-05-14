@@ -1,26 +1,27 @@
 package com.cromoteca.phrasepal.words;
 
-import java.util.Collection;
-
+import com.cromoteca.phrasepal.languages.Language;
 import com.cromoteca.phrasepal.user.User;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 import com.vaadin.hilla.BrowserCallable;
+import com.vaadin.hilla.crud.CrudRepositoryService;
+import java.util.Collection;
+import java.util.List;
 
 @BrowserCallable
 @AnonymousAllowed
-public class WordService {
-    private final WordRepository wordRepository;
+public class WordService extends CrudRepositoryService<Word, Long, WordRepository> {
 
-    public WordService(WordRepository wordRepository) {
-        this.wordRepository = wordRepository;
+    public void addWordsForUser(Collection<String> words, User user, Language language) {
+        var existing = getRepository().findExistingWords(user, words, language);
+
+        words.stream()
+                .filter(w -> !existing.contains(w))
+                .map(w -> new Word(w, user, language))
+                .forEach(this::save);
     }
 
-public void addWordsForUser(Collection<String> wordStrings, User user) {
-        var existing = wordRepository.findExistingWords(user, wordStrings);
-
-        wordStrings.stream()
-            .filter(w -> !existing.contains(w))
-            .map(w -> new Word(w, user))
-            .forEach(wordRepository::save);
+    public List<Word> getWordsForUser(User user, Language language) {
+        return getRepository().findByUserAndLanguage(user, language);
     }
 }

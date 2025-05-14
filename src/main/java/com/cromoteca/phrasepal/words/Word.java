@@ -1,11 +1,7 @@
 package com.cromoteca.phrasepal.words;
 
-import java.time.LocalDateTime;
-
-import org.hibernate.annotations.CreationTimestamp;
-
+import com.cromoteca.phrasepal.languages.Language;
 import com.cromoteca.phrasepal.user.User;
-
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -16,10 +12,13 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.time.LocalDateTime;
+import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
-@Table(name = "words", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"word", "user_id"})})
+@Table(
+        name = "words",
+        uniqueConstraints = {@UniqueConstraint(columnNames = {"word", "user_id", "language_id"})})
 public class Word {
 
     @Id
@@ -34,6 +33,11 @@ public class Word {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
+    @NotNull
+    @ManyToOne
+    @JoinColumn(name = "language_id", nullable = false)
+    private Language language;
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 
@@ -45,9 +49,10 @@ public class Word {
         // Default constructor required by JPA
     }
 
-    public Word(String word, User user) {
+    public Word(String word, User user, Language language) {
         this.word = word;
         this.user = user;
+        this.language = language;
     }
 
     public Long getId() {
@@ -70,6 +75,14 @@ public class Word {
         this.user = user;
     }
 
+    public Language getLanguage() {
+        return language;
+    }
+
+    public void setLanguage(Language language) {
+        this.language = language;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -89,5 +102,4 @@ public class Word {
     public void setSuccessfulUsages(int successfulUsages) {
         this.successfulUsages = successfulUsages;
     }
-
 }

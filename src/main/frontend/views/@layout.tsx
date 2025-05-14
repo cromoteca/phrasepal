@@ -1,17 +1,40 @@
 import { createMenuItems, useViewConfig } from '@vaadin/hilla-file-router/runtime.js';
-import { effect, signal } from '@vaadin/hilla-react-signals';
-import { AppLayout, Avatar, Button, DrawerToggle, Icon, Select, SideNav, SideNavItem } from '@vaadin/react-components';
+import { computed, effect, signal } from '@vaadin/hilla-react-signals';
+import { AppLayout, Button, DrawerToggle, Icon, Select, SideNav, SideNavItem } from '@vaadin/react-components';
 import { useAuth } from 'Frontend/auth/auth';
+import Language from 'Frontend/generated/com/cromoteca/phrasepal/languages/Language';
+import User from 'Frontend/generated/com/cromoteca/phrasepal/user/User';
+import { LanguageService, UserService } from 'Frontend/generated/endpoints';
 import { Suspense, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router';
 
 const documentTitleSignal = signal('');
+const languages = signal<Language[]>([]);
+const items = signal<{ value: string; label: string }[]>([]);
+export const voice = signal<SpeechSynthesisVoice | undefined>();
+export const currentUser = signal<User | undefined>();
+
+LanguageService.getAllLanguages().then((result) => {
+  languages.value = result;
+  items.value = result.map((lang) => ({ value: lang.code!, label: `${lang.flag} ${lang.name}` }));
+});
+UserService.getCurrentUser().then((result) => (currentUser.value = result));
+
+effect(() => {
+  const lang = currentUser.value?.studiedLanguage;
+
+  if (lang) {
+    console.log('Studied language:', lang);
+    const voices = speechSynthesis.getVoices();
+    voice.value = voices.find((voice) => voice.lang === lang.code);
+    console.log('Voices:', voices);
+    console.log('Selected voice:', voice.value?.name);
+  }
+});
+
 effect(() => {
   document.title = documentTitleSignal.value;
 });
-
-export const sourceLanguage = signal({ label: '🇬🇧 English', value: 'en-US' });
-export const targetLanguage = signal({ label: '🇫🇷 French', value: 'fr-FR' });
 
 // Publish for Vaadin to use
 (window as any).Vaadin.documentTitleSignal = documentTitleSignal;
@@ -20,14 +43,6 @@ export default function MainLayout() {
   const currentTitle = useViewConfig()?.title;
   const navigate = useNavigate();
   const location = useLocation();
-
-  const spoken = [{ label: '🇬🇧 English', value: 'en-US' }];
-  const learning = [{ label: '🇫🇷 French', value: 'fr-FR' }];
-
-  useEffect(() => {
-    sourceLanguage.value = spoken[0];
-    targetLanguage.value = learning[0];
-  }, []);
 
   useEffect(() => {
     if (currentTitle) {
@@ -54,15 +69,12 @@ export default function MainLayout() {
         <footer className="flex flex-col gap-s">
           {state.user ? (
             <>
-              <div className="flex items-center gap-s">
-                {state.user.email}
-              </div>
+              <div className="flex items-center gap-s">{state.user.email}</div>
               <Button
                 onClick={async () => {
                   await logout();
                   document.location.reload();
-                }}
-              >
+                }}>
                 Sign out
               </Button>
             </>
@@ -79,8 +91,20 @@ export default function MainLayout() {
 
       <Suspense>
         <div className="p-m">
-          I speak <Select items={spoken} value={spoken[0].value} />
-          and I want to learn <Select items={learning} value={learning[0].value} />
+          I speak
+          <Select items={items.value} value={currentUser.value?.spokenLanguage?.code} disabled />
+          and I want to learn
+          <Select
+            items={items.value}
+            value={currentUser.value?.studiedLanguage?.code}
+            onValueChanged={({ detail: { value } }) => {
+              const selectedLanguage = languages.value.find((lang) => lang.code === value);
+              UserService.updateStudiedLanguage(currentUser.value!.id!, selectedLanguage!).then((updatedUser) => {
+                console.log('Updated user:', updatedUser);
+                currentUser.value = updatedUser;
+              });
+            }}
+          />
         </div>
 
         <Outlet />
