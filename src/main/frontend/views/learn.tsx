@@ -1,4 +1,4 @@
-import { useComputed, useSignal } from '@vaadin/hilla-react-signals';
+import { useSignal } from '@vaadin/hilla-react-signals';
 import { Button, FormLayout, TextArea } from '@vaadin/react-components';
 import { TranslationToTargetLanguageService } from 'Frontend/generated/endpoints';
 import { currentUser, voice } from './@layout';
@@ -13,11 +13,17 @@ export default function LearnView() {
   const translatedText = useSignal('');
 
   const handleTranslateClick = () => {
+    translatedText.value = '';
+
     TranslationToTargetLanguageService.translateToTargetLanguage(
       inputText.value,
       currentUser.value!.spokenLanguage!.name,
       currentUser.value!.studiedLanguage!.name,
-    ).then((translation) => translation && (translatedText.value = translation));
+    ).onNext((chunk) => {
+      if (chunk) {
+        translatedText.value += chunk;
+      }
+    });
   };
 
   const playTranslation = (rate = 1) => {

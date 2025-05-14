@@ -7,10 +7,17 @@ import com.vaadin.flow.server.auth.AnonymousAllowed;
 import com.vaadin.hilla.BrowserCallable;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Optional;
+import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
+import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.chat.model.Generation;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.ai.chat.prompt.SystemPromptTemplate;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 @BrowserCallable
 @AnonymousAllowed
@@ -37,25 +44,50 @@ public class TranslationToTargetLanguageService {
         extractionPromptTemplate = new SystemPromptTemplate(prompts.getGetWordsFromPhrase());
     }
 
-    public String translateToTargetLanguage(String text, String sourceLanguage, String targetLanguage) {
-        var systemMessage =
-                translationPromptTemplate.createMessage(Map.of("source", sourceLanguage, "target", targetLanguage));
-        var prompt = new Prompt(systemMessage, new UserMessage(text));
-        var response = chatModel.call(prompt);
-        var translation = response.getResult().getOutput().getText();
+    public Flux<String> translateToTargetLanguage(String text, String sourceLanguageName, String targetLanguageName) {
+        var user = userService.getCurrentUser().orElseThrow();
+        var translationMessage = translationPromptTemplate.createMessage(
+                Map.of("source", sourceLanguageName, "target", targetLanguageName));
+        var translationPrompt = new Prompt(translationMessage, new UserMessage(text));
+        var translationFlux = chatModel.stream(translationPrompt)
+                .map(ChatResponse::getResult)
+                .map(Generation::getOutput)
+                .map(AssistantMessage::getText)
+                .publish()
+                .autoConnect(2);
 
-        systemMessage = extractionPromptTemplate.createMessage();
-        prompt = new Prompt(systemMessage, new UserMessage(translation));
-        response = chatModel.call(prompt);
-        var words = Arrays.stream(response.getResult().getOutput().getText().split(","))
-                .map(String::trim)
-                .map(String::toLowerCase)
-                .toList();
-        wordService.addWordsForUser(
-                words,
-                userService.getCurrentUser().orElseThrow(),
-                languageService.getLanguageByName(targetLanguage).orElseThrow());
+        translationFlux
+                .collectList()
+                .map(chunks -> String.join("", chunks))
+                .flatMap(fullText -> Mono.fromCallable(() -> {
+                            var extractionMessage = extractionPromptTemplate.createMessage();
+                            var extractionPrompt = new Prompt(extractionMessage, new UserMessage(fullText));
+                            var extractionResponse = chatModel.call(extractionPrompt);
 
-        return translation;
+                            Optional.ofNullable(extractionResponse)
+                                    .map(ChatResponse::getResult)
+                                    .map(Generation::getOutput)
+                                    .map(AssistantMessage::getText)
+                                    .map(t -> t.split(","))
+                                    .ifPresent(split -> {
+                                        var words = Arrays.stream(split)
+                                                .map(String::trim)
+                                                .map(String::toLowerCase)
+                                                .toList();
+
+                                        wordService.addWordsForUser(
+                                                words,
+                                                user,
+                                                languageService
+                                                        .getLanguageByName(targetLanguageName)
+                                                        .orElseThrow());
+                                    });
+
+                            return null; // return needed
+                        })
+                        .subscribeOn(Schedulers.boundedElastic()))
+                .subscribe();
+
+        return translationFlux;
     }
 }
