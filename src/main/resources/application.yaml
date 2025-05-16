@@ -6,28 +6,17 @@ spring:
     name: "Phrase Pal"
   jpa:
     hibernate:
-      ddl-auto: "create-drop"
+       ddl-auto: "update"
     defer-datasource-initialization: true
   ai:
-    ollama:
+    mistralai:
       chat:
         options:
-          model: cogito:8b
-          # num-ctx: 32768
-#   huggingface:
-#     chat:
-#       api-key: ${HF_TOKEN}
-#       url: https://api-inference.huggingface.co/models/your-model-id
-
-# H2 Database Configuration
-# datasource:
-#   url: "jdbc:h2:mem:testdb"
-#   driver-class-name: "org.h2.Driver"
-#   username: "sa"
-#   password: ""
-# h2:
-#   console:
-#     enabled: true
+          model: ministral-8b-latest
+    # ollama:
+    #   chat:
+    #     options:
+    #       model: cogito:8b
 
 prompts:
   translateToTargetLanguage: |
