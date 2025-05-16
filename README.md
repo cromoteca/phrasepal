@@ -1,10 +1,20 @@
-I created three starters: skeleton and wizard from start.vaadin.com and one from start.spring.io.
-I ended up copying things from the wizard to the spring one. Skeleton adds lots of stuff, but then following the Hilla security documentation doesn't match.
+### PhrasePal
 
-Adding Hilla is not that hard, thanks to the automatic first view creation and some copy-paste from the wizard.
+PhrasePal is an application that helps you learn and practice phrases in different languages.
 
-The first component I tried to use is a Select, but the suggested import was wrong (using VS Code).
-Even after, some suggestions are missing:
-![Missing Suggestion](missing-suggestion.png)
+The learning cycle is:
 
-Most complexity is about getting the JPA and authentication right. Tedious work to be repeated for each entity: repository, service... nothing weird here, normal Spring stuff. Copilot helps.
+1. **Learn**: you ask the application how to say something in a different language. It gives you a translation
+    and remembers the key words in the phrase. You can learn as many phrases as you want.
+2. **Practice**: you can practice the phrases you have learned. The application will ask you to translate a phrase
+    from your native language to the target language, using the key words you have learned. You can practice
+    as many phrases as you want.
+
+It will be interesting to see how different AI models can handle the correction task.
+
+Other possible features:
+
+- Duolingo-like translation by clicking on shuffled words.
+- Free chat with the AI.
+- Speech recognition to avoid entering the phrases manually in learning mode.
+- Speech recognition to evaluate the pronunciation. If such a service is not available, the alternative is to try to recognize the pronunciation in the target language and evaluate the text result, but that mixes pronunciation and translation.
