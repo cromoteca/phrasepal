@@ -1,12 +1,15 @@
+import { ViewConfig } from '@vaadin/hilla-file-router/types.js';
+import { translate } from '@vaadin/hilla-react-i18n';
 import { useSignal } from '@vaadin/hilla-react-signals';
 import { Button, FormLayout, TextArea } from '@vaadin/react-components';
 import { TranslationToTargetLanguageService } from 'Frontend/generated/endpoints';
-import { currentUser, voice } from './@layout';
-import { ViewConfig } from '@vaadin/hilla-file-router/types.js';
-import { translate } from '@vaadin/hilla-react-i18n';
+import { currentUser, playText } from './@layout';
 
 export const config: ViewConfig = {
   loginRequired: true,
+  menu: {
+    order: 10,
+  },
 };
 
 export default function LearnView() {
@@ -27,21 +30,12 @@ export default function LearnView() {
     });
   };
 
-  const playTranslation = (rate = 1) => {
-    const utterance = new SpeechSynthesisUtterance(translatedText.value);
-    if (voice.value) {
-      utterance.voice = voice.value;
-    }
-    utterance.rate = rate;
-    speechSynthesis.speak(utterance);
-  };
-
   const handlePlayTranslation = () => {
-    playTranslation();
+    playText(translatedText.value);
   };
 
   const handlePlayTranslationSlow = () => {
-    playTranslation(0.5);
+    playText(translatedText.value, 0.5);
   };
 
   return (

@@ -35,7 +35,7 @@ spring:
     mistralai:
       chat:
         options:
-          model: ministral-8b-latest
+          model: mistral-small-latest
     # ollama:
     #   chat:
     #     options:

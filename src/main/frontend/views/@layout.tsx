@@ -13,26 +13,13 @@ const documentTitleSignal = signal('');
 const languages = signal<Language[]>([]);
 const items = signal<{ value: string; label: string }[]>([]);
 const languageSelectionTranslation = signal('');
-export const voice = signal<SpeechSynthesisVoice | undefined>();
 export const currentUser = signal<User | undefined>();
 
 effect(() => {
   i18n.configure();
 });
 
-LanguageService.getAllLanguages().then((result) => {
-  languages.value = result;
-});
-UserService.getCurrentUser().then((result) => (currentUser.value = result));
-
 effect(() => {
-  const userStudiedLanguage = currentUser.value?.studiedLanguage;
-
-  if (userStudiedLanguage) {
-    const voices = speechSynthesis.getVoices();
-    voice.value = voices.find((voice) => voice.lang === userStudiedLanguage.code);
-  }
-
   const userSpokenLanguage = currentUser.value?.spokenLanguage;
   userSpokenLanguage?.code &&
     i18n.setLanguage(userSpokenLanguage.code).then(() => {
@@ -54,6 +41,39 @@ effect(() => {
 
 // Publish for Vaadin to use
 (window as any).Vaadin.documentTitleSignal = documentTitleSignal;
+
+effect(() => {
+  LanguageService.getAllLanguages().then((result) => {
+    languages.value = result;
+  });
+  UserService.getCurrentUser().then((result) => (currentUser.value = result));
+});
+
+function voices(callback: (availableVoices: SpeechSynthesisVoice[]) => void) {
+  const voices = speechSynthesis.getVoices();
+  if (voices.length) {
+    callback(voices);
+  } else {
+    speechSynthesis.onvoiceschanged = () => {
+      callback(speechSynthesis.getVoices());
+      speechSynthesis.onvoiceschanged = null;
+    };
+  }
+}
+
+export const playText = (text: string, rate = 1) => {
+  voices((availableVoices) => {
+    const voice = availableVoices.find((voice) => voice.lang === currentUser.value?.studiedLanguage?.code);
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = rate;
+
+    if (voice) {
+      utterance.voice = voice;
+    }
+
+    speechSynthesis.speak(utterance);
+  });
+};
 
 export default function MainLayout() {
   const currentTitle = useViewConfig()?.title;
