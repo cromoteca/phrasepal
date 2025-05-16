@@ -3,13 +3,14 @@ import { Button, FormLayout, TextArea } from '@vaadin/react-components';
 import { TranslationToTargetLanguageService } from 'Frontend/generated/endpoints';
 import { currentUser, voice } from './@layout';
 import { ViewConfig } from '@vaadin/hilla-file-router/types.js';
+import { translate } from '@vaadin/hilla-react-i18n';
 
 export const config: ViewConfig = {
   loginRequired: true,
 };
 
 export default function LearnView() {
-  const inputText = useSignal('Je dois acheter un billet de train');
+  const inputText = useSignal('');
   const translatedText = useSignal('');
 
   const handleTranslateClick = () => {
@@ -45,23 +46,23 @@ export default function LearnView() {
 
   return (
     <div className="p-m">
-      <h3>What would you like to learn?</h3>
+      <h3>{translate('learn.welcome')}</h3>
       <FormLayout responsiveSteps={[{ minWidth: 0, columns: 1 }]}>
         <TextArea
-          label="Enter phrase"
-          placeholder="Type a phrase here..."
+          label={translate('learn.input')}
+          placeholder={translate('learn.inputPlaceholder')}
           value={inputText.value}
           onChange={(e) => (inputText.value = e.target.value)}
         />
         <Button theme="primary" onClick={handleTranslateClick}>
-          Translate
+          {translate('learn.translate')}
         </Button>
-        <TextArea label="Translated text" value={translatedText.value} readonly />
+        <TextArea label={translate('learn.translatedText')} value={translatedText.value} readonly />
         <Button theme="secondary" onClick={handlePlayTranslation} disabled={!translatedText.value}>
-          Play Translation
+          {translate('learn.playTranslation')}
         </Button>
         <Button theme="secondary" onClick={handlePlayTranslationSlow} disabled={!translatedText.value}>
-          Play Translation Slowly
+          {translate('learn.playTranslationSlow')}
         </Button>
       </FormLayout>
     </div>

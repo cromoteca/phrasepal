@@ -39,4 +39,11 @@ public class UserService extends CrudRepositoryService<User, Long, UserRepositor
         user.setStudiedLanguage(language);
         return getRepository().save(user);
     }
+
+    @NonNull
+    public User updateSpokenLanguage(long userId, @NonNull Language language) {
+        var user = getRepository().findById(userId).orElseThrow();
+        user.setSpokenLanguage(language);
+        return getRepository().save(user);
+    }
 }

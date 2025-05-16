@@ -1,5 +1,5 @@
 import { createMenuItems, useViewConfig } from '@vaadin/hilla-file-router/runtime.js';
-import { computed, effect, signal } from '@vaadin/hilla-react-signals';
+import { effect, signal, useComputed } from '@vaadin/hilla-react-signals';
 import { AppLayout, Button, DrawerToggle, Icon, Select, SideNav, SideNavItem } from '@vaadin/react-components';
 import { useAuth } from 'Frontend/auth/auth';
 import Language from 'Frontend/generated/com/cromoteca/phrasepal/languages/Language';
@@ -7,29 +7,45 @@ import User from 'Frontend/generated/com/cromoteca/phrasepal/user/User';
 import { LanguageService, UserService } from 'Frontend/generated/endpoints';
 import { Suspense, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router';
+import { i18n, translate } from '@vaadin/hilla-react-i18n';
 
 const documentTitleSignal = signal('');
 const languages = signal<Language[]>([]);
 const items = signal<{ value: string; label: string }[]>([]);
+const languageSelectionTranslation = signal('');
 export const voice = signal<SpeechSynthesisVoice | undefined>();
 export const currentUser = signal<User | undefined>();
 
+effect(() => {
+  i18n.configure();
+});
+
 LanguageService.getAllLanguages().then((result) => {
   languages.value = result;
-  items.value = result.map((lang) => ({ value: lang.code!, label: `${lang.flag} ${lang.name}` }));
 });
 UserService.getCurrentUser().then((result) => (currentUser.value = result));
 
 effect(() => {
-  const lang = currentUser.value?.studiedLanguage;
+  const userStudiedLanguage = currentUser.value?.studiedLanguage;
 
-  if (lang) {
-    console.log('Studied language:', lang);
+  if (userStudiedLanguage) {
     const voices = speechSynthesis.getVoices();
-    voice.value = voices.find((voice) => voice.lang === lang.code);
-    console.log('Voices:', voices);
-    console.log('Selected voice:', voice.value?.name);
+    voice.value = voices.find((voice) => voice.lang === userStudiedLanguage.code);
   }
+
+  const userSpokenLanguage = currentUser.value?.spokenLanguage;
+  userSpokenLanguage?.code &&
+    i18n.setLanguage(userSpokenLanguage.code).then(() => {
+      languageSelectionTranslation.value = translate('home.languages', {
+        spokenLanguage: 'L1',
+        studiedLanguage: 'L2',
+      });
+    });
+
+  items.value = languages.value.map((lang) => ({
+    value: lang.code!,
+    label: `${lang.flag} ${translate('language.' + lang.code!.substring(0, 2))}`,
+  }));
 });
 
 effect(() => {
@@ -43,6 +59,7 @@ export default function MainLayout() {
   const currentTitle = useViewConfig()?.title;
   const navigate = useNavigate();
   const location = useLocation();
+  const { state, logout } = useAuth();
 
   useEffect(() => {
     if (currentTitle) {
@@ -50,7 +67,45 @@ export default function MainLayout() {
     }
   }, [currentTitle]);
 
-  const { state, logout } = useAuth();
+  const languageSelectionComponents = useComputed(() => {
+    const parts = languageSelectionTranslation.value.split(/(L1|L2)/).filter((part) => part.trim() !== '');
+    return parts.map((part) => {
+      if (part === 'L1') {
+        return (
+          <Select
+            key={part}
+            items={items.value}
+            value={currentUser.value?.spokenLanguage?.code}
+            onValueChanged={({ detail: { value } }) => {
+              const selectedLanguage = languages.value.find((lang) => lang.code === value);
+              if (selectedLanguage?.code && selectedLanguage.code !== currentUser.value?.spokenLanguage?.code) {
+                UserService.updateSpokenLanguage(currentUser.value!.id!, selectedLanguage).then((updatedUser) => {
+                  currentUser.value = updatedUser;
+                });
+              }
+            }}
+          />
+        );
+      } else if (part === 'L2') {
+        return (
+          <Select
+            key={part}
+            items={items.value}
+            value={currentUser.value?.studiedLanguage?.code}
+            onValueChanged={({ detail: { value } }) => {
+              const selectedLanguage = languages.value.find((lang) => lang.code === value);
+              if (selectedLanguage?.code && selectedLanguage.code !== currentUser.value?.studiedLanguage?.code) {
+                UserService.updateStudiedLanguage(currentUser.value!.id!, selectedLanguage).then((updatedUser) => {
+                  currentUser.value = updatedUser;
+                });
+              }
+            }}
+          />
+        );
+      }
+      return <span key={part}>{part}</span>;
+    });
+  });
 
   return (
     <AppLayout primarySection="drawer">
@@ -75,11 +130,11 @@ export default function MainLayout() {
                   await logout();
                   document.location.reload();
                 }}>
-                Sign out
+                {translate('home.signOut')}
               </Button>
             </>
           ) : (
-            <Link to="/login">Sign in</Link>
+            <Link to="/login">{translate('home.signIn')}</Link>
           )}
         </footer>
       </div>
@@ -90,23 +145,7 @@ export default function MainLayout() {
       </h1>
 
       <Suspense>
-        <div className="p-m">
-          I speak
-          <Select items={items.value} value={currentUser.value?.spokenLanguage?.code} disabled />
-          and I want to learn
-          <Select
-            items={items.value}
-            value={currentUser.value?.studiedLanguage?.code}
-            onValueChanged={({ detail: { value } }) => {
-              const selectedLanguage = languages.value.find((lang) => lang.code === value);
-              UserService.updateStudiedLanguage(currentUser.value!.id!, selectedLanguage!).then((updatedUser) => {
-                console.log('Updated user:', updatedUser);
-                currentUser.value = updatedUser;
-              });
-            }}
-          />
-        </div>
-
+        <div className="p-m">{languageSelectionComponents}</div>
         <Outlet />
       </Suspense>
     </AppLayout>
