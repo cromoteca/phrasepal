@@ -4,10 +4,33 @@ vaadin:
 spring:
   application:
     name: "Phrase Pal"
+  datasource:
+    url: jdbc:h2:file:./data/phrasepal-db;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
   jpa:
     hibernate:
        ddl-auto: "update"
     defer-datasource-initialization: true
+  sql:
+    init:
+      mode: always
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: 554092484853-0079ur9u88jk4r98s8fs6dna7p1tg320.apps.googleusercontent.com
+            client-secret: ${GOOGLE_AUTH_CLIENT_SECRET}
+            scope:
+              - email
+              - profile
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/v2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
   ai:
     mistralai:
       chat:

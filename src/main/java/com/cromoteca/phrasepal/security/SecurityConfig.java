@@ -19,12 +19,16 @@ public class SecurityConfig extends VaadinWebSecurity {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private CustomOAuth2UserService customOAuth2UserService;
+
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         // Set default security policy that permits Hilla internal requests and
         // denies all other
         // http.authorizeHttpRequests(registry -> registry.requestMatchers(
         //         routeUtil::isRouteAllowed).permitAll());
+        http.oauth2Login(oauth2 -> oauth2.userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService)));
         super.configure(http);
         // use a custom login view and redirect to root on logout
         setLoginView(http, "/login", "/");

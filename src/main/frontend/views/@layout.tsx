@@ -1,4 +1,5 @@
 import { createMenuItems, useViewConfig } from '@vaadin/hilla-file-router/runtime.js';
+import { i18n, translate } from '@vaadin/hilla-react-i18n';
 import { effect, signal, useComputed } from '@vaadin/hilla-react-signals';
 import { AppLayout, Button, DrawerToggle, Icon, Select, SideNav, SideNavItem } from '@vaadin/react-components';
 import { useAuth } from 'Frontend/auth/auth';
@@ -6,8 +7,7 @@ import Language from 'Frontend/generated/com/cromoteca/phrasepal/languages/Langu
 import User from 'Frontend/generated/com/cromoteca/phrasepal/user/User';
 import { LanguageService, UserService } from 'Frontend/generated/endpoints';
 import { Suspense, useEffect } from 'react';
-import { Link, Outlet, useLocation, useNavigate } from 'react-router';
-import { i18n, translate } from '@vaadin/hilla-react-i18n';
+import { Outlet, useLocation, useNavigate } from 'react-router';
 
 const documentTitleSignal = signal('');
 const languages = signal<Language[]>([]);
@@ -134,7 +134,7 @@ export default function MainLayout() {
               </Button>
             </>
           ) : (
-            <Link to="/login">{translate('home.signIn')}</Link>
+            <Button onClick={() => window.location.replace('/login')}>{translate('home.signIn')}</Button>
           )}
         </footer>
       </div>

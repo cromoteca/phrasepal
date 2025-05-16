@@ -10,6 +10,8 @@ import org.jspecify.annotations.NonNull;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 
 @BrowserCallable
 @AnonymousAllowed
@@ -22,10 +24,21 @@ public class UserService extends CrudRepositoryService<User, Long, UserRepositor
     }
 
     public Optional<User> getCurrentUser() {
-        return Optional.ofNullable(SecurityContextHolder.getContext().getAuthentication())
-                .map(Authentication::getName)
-                .map(userDetailsService::loadUserByUsername)
-                .map(User.class::cast);
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return Optional.empty();
+        }
+        // Handle OAuth2 authentication (e.g., Google)
+        if (authentication instanceof OAuth2AuthenticationToken oauth2Token) {
+            Object principal = oauth2Token.getPrincipal();
+            if (principal instanceof OAuth2User oAuth2User) {
+                String email = oAuth2User.getAttribute("email");
+                if (email != null) {
+                    return getRepository().findByEmail(email);
+                }
+            }
+        }
+        return Optional.empty();
     }
 
     @PermitAll

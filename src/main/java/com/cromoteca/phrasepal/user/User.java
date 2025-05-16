@@ -1,7 +1,6 @@
 package com.cromoteca.phrasepal.user;
 
 import com.cromoteca.phrasepal.languages.Language;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -26,10 +25,6 @@ public class User implements UserDetails {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false)
-    @JsonIgnore
-    private String password;
-
     @NotNull
     @ManyToOne
     @JoinColumn(name = "spoken_language_id", nullable = false)
@@ -39,6 +34,12 @@ public class User implements UserDetails {
     @ManyToOne
     @JoinColumn(name = "studied_language_id", nullable = false)
     private Language studiedLanguage;
+
+    public User() {}
+
+    public User(String email) {
+        this.email = email;
+    }
 
     // Getters and setters
     public Long getId() {
@@ -57,15 +58,6 @@ public class User implements UserDetails {
         this.email = email;
     }
 
-    @Override
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
     public Language getSpokenLanguage() {
         return spokenLanguage;
     }
@@ -80,6 +72,11 @@ public class User implements UserDetails {
 
     public void setStudiedLanguage(Language studiedLanguage) {
         this.studiedLanguage = studiedLanguage;
+    }
+
+    @Override
+    public String getPassword() {
+        return null;
     }
 
     @Override
