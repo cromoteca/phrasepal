@@ -35,29 +35,29 @@ public class AIService {
     private final UserService userService;
     private final LanguageService languageService;
 
-    private SystemPromptTemplate translateToTargetLanguagePromptTemplate;
-    private SystemPromptTemplate getWordsFromPhrasePromptTemplate;
-    private SystemPromptTemplate createPhraseFromWordsPromptTemplate;
-    private SystemPromptTemplate correctTranslationPromptTemplate;
+    private SystemPromptTemplate translateToTargetLanguage;
+    private SystemPromptTemplate getWordsFromPhrase;
+    private SystemPromptTemplate createPhraseFromWords;
+    private SystemPromptTemplate correctTranslation;
 
     @Value("${prompts.translateToTargetLanguage}")
     public void setTranslateToTargetLanguage(String value) {
-        this.translateToTargetLanguagePromptTemplate = new SystemPromptTemplate(value);
+        this.translateToTargetLanguage = new SystemPromptTemplate(value);
     }
 
     @Value("${prompts.getWordsFromPhrase}")
     public void setGetWordsFromPhrase(String value) {
-        this.getWordsFromPhrasePromptTemplate = new SystemPromptTemplate(value);
+        this.getWordsFromPhrase = new SystemPromptTemplate(value);
     }
 
     @Value("${prompts.createPhraseFromWords}")
     public void setCreatePhraseFromWords(String value) {
-        this.createPhraseFromWordsPromptTemplate = new SystemPromptTemplate(value);
+        this.createPhraseFromWords = new SystemPromptTemplate(value);
     }
 
     @Value("${prompts.correctTranslation}")
     public void setCorrectTranslation(String value) {
-        this.correctTranslationPromptTemplate = new SystemPromptTemplate(value);
+        this.correctTranslation = new SystemPromptTemplate(value);
     }
 
     public AIService(
@@ -70,8 +70,8 @@ public class AIService {
 
     public Flux<String> translateToTargetLanguage(String text, String sourceLanguage, String targetLanguage) {
         var user = userService.getCurrentUser().orElseThrow();
-        var translationMessage = translateToTargetLanguagePromptTemplate.createMessage(
-                Map.of("source", sourceLanguage, "target", targetLanguage));
+        var translationMessage =
+                translateToTargetLanguage.createMessage(Map.of("source", sourceLanguage, "target", targetLanguage));
         var translationPrompt = new Prompt(translationMessage, new UserMessage(text));
         var translationFlux = chatModel.stream(translationPrompt)
                 .map(ChatResponse::getResult)
@@ -84,7 +84,7 @@ public class AIService {
                 .collectList()
                 .map(chunks -> String.join("", chunks))
                 .flatMap(fullText -> Mono.fromCallable(() -> {
-                            var extractionMessage = getWordsFromPhrasePromptTemplate.createMessage();
+                            var extractionMessage = getWordsFromPhrase.createMessage();
                             var extractionPrompt = new Prompt(extractionMessage, new UserMessage(fullText));
                             var extractionResponse = chatModel.call(extractionPrompt);
 
@@ -121,7 +121,7 @@ public class AIService {
     public PhraseWithWords generatePhrase() {
         var user = userService.getCurrentUser().orElseThrow();
         var words = wordService.findCandidateWords(user, user.getStudiedLanguage(), 5);
-        var phraseGenerationMessage = createPhraseFromWordsPromptTemplate.createMessage(
+        var phraseGenerationMessage = createPhraseFromWords.createMessage(
                 Map.of("lang", user.getStudiedLanguage().getName()));
         var phraseGenerationPrompt = new Prompt(
                 phraseGenerationMessage,
@@ -139,7 +139,7 @@ public class AIService {
     public String checkTranslation(
             String phrase, String translation, List<String> usedWords, String sourceLanguage, String targetLanguage) {
         var user = userService.getCurrentUser().orElseThrow();
-        var correctTranslationMessage = correctTranslationPromptTemplate.createMessage(Map.of(
+        var correctTranslationMessage = correctTranslation.createMessage(Map.of(
                 "source",
                 sourceLanguage,
                 "target",
