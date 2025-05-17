@@ -23,6 +23,14 @@ public class Language {
 
     private String flag;
 
+    public Language() {}
+
+    public Language(String name, String code, String flag) {
+        this.name = name;
+        this.code = code;
+        this.flag = flag;
+    }
+
     public Long getId() {
         return id;
     }
