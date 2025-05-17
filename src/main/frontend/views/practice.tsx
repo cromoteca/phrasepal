@@ -39,7 +39,7 @@ export default function PracticeView() {
 
   return (
     <div className="p-m">
-      <h3>Practice</h3>
+      <h3>{translate('practice.welcome')}</h3>
       <FormLayout responsiveSteps={[{ minWidth: 0, columns: 1 }]}>
         <TextArea label={translate('practice.phrase')} value={phrase.value.phrase} readonly />
         <TextArea
