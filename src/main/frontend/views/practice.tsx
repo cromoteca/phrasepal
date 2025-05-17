@@ -1,6 +1,9 @@
 import { ViewConfig } from '@vaadin/hilla-file-router/types.js';
+import { translate } from '@vaadin/hilla-react-i18n';
 import { useSignal } from '@vaadin/hilla-react-signals';
-import { WordService } from 'Frontend/generated/endpoints';
+import { Button, FormLayout, TextArea } from '@vaadin/react-components';
+import PhraseWithWords from 'Frontend/generated/com/cromoteca/phrasepal/ai/AIService/PhraseWithWords';
+import { AIService } from 'Frontend/generated/endpoints';
 import { useEffect } from 'react';
 import { currentUser } from './@layout';
 
@@ -12,32 +15,42 @@ export const config: ViewConfig = {
 };
 
 export default function PracticeView() {
-  const words = useSignal<string[]>([]);
+  const phrase = useSignal<PhraseWithWords>({ phrase: '', words: [] });
+  const userTranslation = useSignal<string>('');
+  const correction = useSignal<string>('');
 
   useEffect(() => {
-    WordService.getWordsForUser(currentUser.value).then((result) => {
-      if (result) {
-        words.value = result.map((word) => word!.word!);
-      }
+    AIService.generatePhrase().then((p) => {
+      phrase.value = p;
     });
   }, [currentUser.value]);
+
+  function handleCheckTranslation() {
+    AIService.checkTranslation(
+      phrase.value.phrase,
+      userTranslation.value,
+      phrase.value.words,
+      currentUser.value!.studiedLanguage!.name,
+      currentUser.value!.spokenLanguage!.name,
+    ).then((c) => {
+      c && (correction.value = c);
+    });
+  }
 
   return (
     <div className="p-m">
       <h3>Practice</h3>
-      <p>This page will allow you to practice your language skills.</p>
-      {words.value.length > 0 ? (
-        <>
-          <p>Based on your activity, here are some words you will be invited to practice:</p>
-          <ul>
-            {words.value.map((word) => (
-              <li key={word}>{word}</li>
-            ))}
-          </ul>
-        </>
-      ) : (
-        <p>You should first learn some phrases, so that the application can detect the words you want to practice.</p>
-      )}
+      <FormLayout responsiveSteps={[{ minWidth: 0, columns: 1 }]}>
+        <TextArea label={translate('practice.phrase')} value={phrase.value.phrase} readonly />
+        <TextArea
+          label={translate('practice.translation')}
+          placeholder={translate('practice.translationPlaceholder')}
+          value={userTranslation.value}
+          onChange={(e) => (userTranslation.value = e.target.value)}
+        />
+        <Button onClick={handleCheckTranslation}>{translate('practice.check')}</Button>
+        <TextArea label={translate('practice.correction')} value={correction.value} readonly />
+      </FormLayout>
     </div>
   );
 }

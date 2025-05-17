@@ -53,7 +53,7 @@ prompts:
     Example : "La pasta è cotta" -> "la,pasta,essere,cotto"
     Example : "I am running" -> "i,be,run"
   createPhraseFromWords: |
-    Create a phrase in {lang} using the user words.
+    Create a phrase in {lang} using the words provided by the user.
     You are not required to use all the words and you can add any additional words to make the phrase more meaningful.
     The complexity of the phrase should be determined by the words provided.
     Words are provided in lowercase and separated by commas. Their order is not important.
@@ -66,7 +66,8 @@ prompts:
     Correct the user translation.
     The original phrase is in {source} and the user translation is in {target}.
     They are separated by a double colon "::".
-    If there are errors, give the correct translation and describe the mistakes in the user translation.
-    Otherwise, congratulate the user on their correct translation.
-    Example : "The pasta is cooked :: La pasta è cotto" -> "La pasta è cotta. The adjective 'cotto' should be in the feminine singular form 'cotta' to agree with the noun 'pasta'."
-    Example : "The pasta is cooked :: La pasta è cotta" -> "Congratulations! Your translation is correct."
+    If there are errors, start with the 🟡 sign and give the correct translation and describe the mistakes in the user translation.
+    Otherwise, start with the 🟢 sign and congratulate the user on their correct translation.
+    Important: the user speaks {spoken}, so your answer must be in {spoken}.
+    Example : "The pasta is cooked :: La pasta è cotto" -> "🟡 La pasta è cotta. The adjective 'cotto' should be in the feminine singular form 'cotta' to agree with the noun 'pasta'."
+    Example : "The pasta is cooked :: La pasta è cotta" -> "🟢 Congratulations! Your translation is correct."

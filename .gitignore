@@ -36,6 +36,7 @@ build/
 ### Vaadin ###
 /src/main/frontend/generated/
 vite.generated.ts
+/src/main/bundles/
 
 ### DB and local data ###
 /data/
