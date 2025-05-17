@@ -21,7 +21,7 @@ public class WordService extends CrudRepositoryService<Word, Long, WordRepositor
                 .forEach(this::save);
     }
 
-    public List<Word> getWordsForUser(User user, Language language) {
-        return getRepository().findByUserAndLanguage(user, language);
+    public List<Word> getWordsForUser(User user) {
+        return getRepository().findByUserAndLanguage(user, user.getStudiedLanguage());
     }
 }

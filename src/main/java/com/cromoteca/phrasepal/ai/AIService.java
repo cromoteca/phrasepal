@@ -3,11 +3,12 @@ package com.cromoteca.phrasepal.ai;
 import com.cromoteca.phrasepal.languages.LanguageService;
 import com.cromoteca.phrasepal.user.UserService;
 import com.cromoteca.phrasepal.words.WordService;
-import com.vaadin.flow.server.auth.AnonymousAllowed;
 import com.vaadin.hilla.BrowserCallable;
+import jakarta.annotation.security.PermitAll;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Optional;
+import org.jspecify.annotations.NonNull;
 import org.springframework.ai.chat.messages.AssistantMessage;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
@@ -20,17 +21,18 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 @BrowserCallable
-@AnonymousAllowed
-public class TranslationToTargetLanguageService {
+@PermitAll
+public class AIService {
 
     private final ChatModel chatModel;
     private final SystemPromptTemplate translationPromptTemplate;
     private final SystemPromptTemplate extractionPromptTemplate;
+    private final SystemPromptTemplate phraseGenerationPromptTemplate;
     private final WordService wordService;
     private final UserService userService;
     private final LanguageService languageService;
 
-    public TranslationToTargetLanguageService(
+    public AIService(
             ChatModel chatModel,
             Prompts prompts,
             WordService wordService,
@@ -42,6 +44,7 @@ public class TranslationToTargetLanguageService {
         this.languageService = languageService;
         translationPromptTemplate = new SystemPromptTemplate(prompts.getTranslateToTargetLanguage());
         extractionPromptTemplate = new SystemPromptTemplate(prompts.getGetWordsFromPhrase());
+        phraseGenerationPromptTemplate = new SystemPromptTemplate(prompts.getCreatePhraseFromWords());
     }
 
     public Flux<String> translateToTargetLanguage(String text, String sourceLanguageName, String targetLanguageName) {
@@ -89,5 +92,20 @@ public class TranslationToTargetLanguageService {
                 .subscribe();
 
         return translationFlux;
+    }
+
+    @NonNull
+    public String generatePhrase() {
+        var user = userService.getCurrentUser().orElseThrow();
+        var words = wordService.getWordsForUser(user);
+        var phraseGenerationMessage = phraseGenerationPromptTemplate.createMessage();
+        var phraseGenerationPrompt = new Prompt(phraseGenerationMessage, new UserMessage(words.toString()));
+        var phraseGenerationResponse = chatModel.call(phraseGenerationPrompt);
+
+        return Optional.ofNullable(phraseGenerationResponse)
+                .map(ChatResponse::getResult)
+                .map(Generation::getOutput)
+                .map(AssistantMessage::getText)
+                .orElseThrow();
     }
 }

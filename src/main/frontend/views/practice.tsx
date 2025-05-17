@@ -15,7 +15,7 @@ export default function PracticeView() {
   const words = useSignal<string[]>([]);
 
   useEffect(() => {
-    WordService.getWordsForUser(currentUser.value, currentUser?.value?.studiedLanguage).then((result) => {
+    WordService.getWordsForUser(currentUser.value).then((result) => {
       if (result) {
         words.value = result.map((word) => word!.word!);
       }

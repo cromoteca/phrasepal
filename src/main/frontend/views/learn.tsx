@@ -2,7 +2,7 @@ import { ViewConfig } from '@vaadin/hilla-file-router/types.js';
 import { translate } from '@vaadin/hilla-react-i18n';
 import { useSignal } from '@vaadin/hilla-react-signals';
 import { Button, FormLayout, TextArea } from '@vaadin/react-components';
-import { TranslationToTargetLanguageService } from 'Frontend/generated/endpoints';
+import { AIService } from 'Frontend/generated/endpoints';
 import { currentUser, playText } from './@layout';
 
 export const config: ViewConfig = {
@@ -19,7 +19,7 @@ export default function LearnView() {
   const handleTranslateClick = () => {
     translatedText.value = '';
 
-    TranslationToTargetLanguageService.translateToTargetLanguage(
+    AIService.translateToTargetLanguage(
       inputText.value,
       currentUser.value!.spokenLanguage!.name,
       currentUser.value!.studiedLanguage!.name,
