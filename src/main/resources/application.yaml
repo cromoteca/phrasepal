@@ -36,10 +36,10 @@ spring:
       chat:
         options:
           model: mistral-small-latest
-    # ollama:
-    #   chat:
-    #     options:
-    #       model: cogito:8b
+    ollama:
+      chat:
+        options:
+          model: cogito:14b
 
 prompts:
   translateToTargetLanguage: |
