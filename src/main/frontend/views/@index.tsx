@@ -1,6 +1,7 @@
 import { ViewConfig } from '@vaadin/hilla-file-router/types.js';
 import { translate } from '@vaadin/hilla-react-i18n';
 export const config: ViewConfig = {
+  title: 'home.title',
   menu: {
     order: 0,
   },

@@ -6,6 +6,7 @@ import { AIService } from 'Frontend/generated/endpoints';
 import { currentUser, playText } from './@layout';
 
 export const config: ViewConfig = {
+  title: 'learn.title',
   loginRequired: true,
   menu: {
     order: 10,

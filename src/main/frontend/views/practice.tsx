@@ -8,6 +8,7 @@ import { useEffect } from 'react';
 import { currentUser } from './@layout';
 
 export const config: ViewConfig = {
+  title: 'practice.title',
   loginRequired: true,
   menu: {
     order: 20,

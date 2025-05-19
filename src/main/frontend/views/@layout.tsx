@@ -83,7 +83,7 @@ export default function MainLayout() {
 
   useEffect(() => {
     if (currentTitle) {
-      documentTitleSignal.value = currentTitle;
+      documentTitleSignal.value = translate(currentTitle);
     }
   }, [currentTitle]);
 
@@ -136,7 +136,7 @@ export default function MainLayout() {
             {createMenuItems().map(({ to, title, icon }) => (
               <SideNavItem path={to} key={to}>
                 {icon ? <Icon src={icon} slot="prefix"></Icon> : <></>}
-                {title}
+                {title && translate(title)}
               </SideNavItem>
             ))}
           </SideNav>
