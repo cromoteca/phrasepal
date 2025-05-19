@@ -32,8 +32,8 @@ export default function PracticeView() {
       phrase.value.words,
       currentUser.value!.studiedLanguage!.name,
       currentUser.value!.spokenLanguage!.name,
-    ).then((c) => {
-      c && (correction.value = c);
+    ).onNext((chunk) => {
+      chunk && (correction.value += chunk);
     });
   }
 

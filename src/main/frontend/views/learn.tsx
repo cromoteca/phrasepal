@@ -24,9 +24,7 @@ export default function LearnView() {
       currentUser.value!.spokenLanguage!.name,
       currentUser.value!.studiedLanguage!.name,
     ).onNext((chunk) => {
-      if (chunk) {
-        translatedText.value += chunk;
-      }
+      chunk && (translatedText.value += chunk);
     });
   };
 

@@ -9,6 +9,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
@@ -67,52 +68,62 @@ public class AIService {
         this.userService = userService;
         this.languageService = languageService;
     }
+    /**
+     * This method is used to "tee" a Flux, allowing us to consume the elements of the Flux at the end,
+     * while still giving access to the flux.
+     *
+     * @param flux The original Flux to be "tee'd".
+     * @param consumer The consumer that will process the elements of the Flux.
+     * @param <T> The type of elements in the Flux.
+     * @return The original Flux.
+     */
+    private static <T> Flux<T> tee(Flux<T> source, Consumer<List<T>> consumer) {
+        var wrapped = source.publish().autoConnect(2);
+        wrapped.collectList()
+                .flatMap(list -> Mono.fromCallable(() -> {
+                            consumer.accept(list);
+                            return null;
+                        })
+                        .subscribeOn(Schedulers.boundedElastic()))
+                .subscribe();
+        return wrapped;
+    }
 
     public Flux<String> translateToTargetLanguage(String text, String sourceLanguage, String targetLanguage) {
         var user = userService.getCurrentUser().orElseThrow();
         var translationMessage =
                 translateToTargetLanguage.createMessage(Map.of("source", sourceLanguage, "target", targetLanguage));
         var translationPrompt = new Prompt(translationMessage, new UserMessage(text));
-        var translationFlux = chatModel.stream(translationPrompt)
-                .map(ChatResponse::getResult)
-                .map(Generation::getOutput)
-                .map(AssistantMessage::getText)
-                .publish()
-                .autoConnect(2);
+        return tee(
+                chatModel.stream(translationPrompt)
+                        .map(ChatResponse::getResult)
+                        .map(Generation::getOutput)
+                        .map(AssistantMessage::getText),
+                chunks -> {
+                    var fullText = String.join("", chunks);
+                    var extractionMessage = getWordsFromPhrase.createMessage();
+                    var extractionPrompt = new Prompt(extractionMessage, new UserMessage(fullText));
+                    var extractionResponse = chatModel.call(extractionPrompt);
 
-        translationFlux
-                .collectList()
-                .map(chunks -> String.join("", chunks))
-                .flatMap(fullText -> Mono.fromCallable(() -> {
-                            var extractionMessage = getWordsFromPhrase.createMessage();
-                            var extractionPrompt = new Prompt(extractionMessage, new UserMessage(fullText));
-                            var extractionResponse = chatModel.call(extractionPrompt);
+                    Optional.ofNullable(extractionResponse)
+                            .map(ChatResponse::getResult)
+                            .map(Generation::getOutput)
+                            .map(AssistantMessage::getText)
+                            .map(t -> t.split(","))
+                            .ifPresent(split -> {
+                                var words = Arrays.stream(split)
+                                        .map(String::trim)
+                                        .map(String::toLowerCase)
+                                        .toList();
 
-                            Optional.ofNullable(extractionResponse)
-                                    .map(ChatResponse::getResult)
-                                    .map(Generation::getOutput)
-                                    .map(AssistantMessage::getText)
-                                    .map(t -> t.split(","))
-                                    .ifPresent(split -> {
-                                        var words = Arrays.stream(split)
-                                                .map(String::trim)
-                                                .map(String::toLowerCase)
-                                                .toList();
-
-                                        wordService.addWordsForUser(
-                                                words,
-                                                user,
-                                                languageService
-                                                        .getLanguageByName(targetLanguage)
-                                                        .orElseThrow());
-                                    });
-
-                            return null; // return needed
-                        })
-                        .subscribeOn(Schedulers.boundedElastic()))
-                .subscribe();
-
-        return translationFlux;
+                                wordService.addWordsForUser(
+                                        words,
+                                        user,
+                                        languageService
+                                                .getLanguageByName(targetLanguage)
+                                                .orElseThrow());
+                            });
+                });
     }
 
     public record PhraseWithWords(@NonNull String phrase, @NonNull List<String> words) {}
@@ -136,7 +147,7 @@ public class AIService {
                 .orElseThrow();
     }
 
-    public String checkTranslation(
+    public Flux<String> checkTranslation(
             String phrase, String translation, List<String> usedWords, String sourceLanguage, String targetLanguage) {
         var user = userService.getCurrentUser().orElseThrow();
         var correctTranslationMessage = correctTranslation.createMessage(Map.of(
@@ -149,22 +160,21 @@ public class AIService {
         var correctTranslationPrompt =
                 new Prompt(correctTranslationMessage, new UserMessage(phrase + " :: " + translation));
         LOGGER.debug("Calling chatModel.call with prompt:  {}", correctTranslationPrompt);
-        var correctTranslationResponse = chatModel.call(correctTranslationPrompt);
-
-        var correction = Optional.ofNullable(correctTranslationResponse)
-                .map(ChatResponse::getResult)
-                .map(Generation::getOutput)
-                .map(AssistantMessage::getText)
-                .orElseThrow();
-
-        if (correction.contains("🟡")) {
-            wordService.updateScoresForUser(user, usedWords, false);
-        } else if (correction.contains("🟢")) {
-            wordService.updateScoresForUser(user, usedWords, true);
-        } else {
-            LOGGER.warn("It is not clear if the translation is correct or not ({} -> {})", phrase, correction);
-        }
-
-        return correction;
+        return tee(
+                chatModel.stream(correctTranslationPrompt)
+                        .map(ChatResponse::getResult)
+                        .map(Generation::getOutput)
+                        .map(AssistantMessage::getText),
+                chunks -> {
+                    var correction = String.join("", chunks);
+                    if (correction.contains("🟡")) {
+                        wordService.updateScoresForUser(user, usedWords, false);
+                    } else if (correction.contains("🟢")) {
+                        wordService.updateScoresForUser(user, usedWords, true);
+                    } else {
+                        LOGGER.warn(
+                                "It is not clear if the translation is correct or not ({} -> {})", phrase, correction);
+                    }
+                });
     }
 }
